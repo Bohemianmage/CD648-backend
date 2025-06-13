@@ -1,14 +1,11 @@
 const mongoose = require('mongoose');
 
 const reservaSchema = new mongoose.Schema({
-  nombre: String,
-  correo: String,
-  telefono: String,
-  tipoHabitacion: String, // 1, 2, 3
-  adultos: Number,
-  ninos: Number,
-  fechaInicio: String, // formato YYYY-MM-DD
-  fechaFin: String,
-});
+  habitacion: { type: String, required: true },
+  inicio: { type: Date, required: true },
+  fin: { type: Date, required: true },
+  adultos: { type: Number, required: true },
+  ninos: { type: Number, required: true },
+}, { timestamps: true });
 
 module.exports = mongoose.model('Reserva', reservaSchema);
