@@ -17,6 +17,15 @@ mongoose
   .then(() => console.log('✅ MongoDB conectado'))
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
+// Middleware para proteger rutas administrativas
+app.use('/api/reservas', (req, res, next) => {
+  const key = req.headers['x-admin-key'];
+  if (key !== process.env.ADMIN_KEY) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+  next();
+});
+
 // Rutas
 app.use('/api', reservasRoutes);
 
