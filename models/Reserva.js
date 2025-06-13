@@ -1,19 +1,33 @@
 const mongoose = require('mongoose');
 
-const reservaSchema = new mongoose.Schema({
-  habitacionId: Number,
-  nombre: String,
-  email: String,
-  telefono: String,
-  personas: Number,
-  rangoFechas: {
-    inicio: Date,
-    fin: Date
+/**
+ * Modelo de Reserva
+ * -----------------
+ * Representa una reserva con fechas, habitación, huéspedes, y estado de check-in.
+ */
+const reservaSchema = new mongoose.Schema(
+  {
+    nombre: { type: String, required: true },
+    correo: { type: String, required: true },
+    telefono: { type: String, required: false },
+
+    tipoHabitacion: { type: Number, required: true }, // 1, 2 o 3
+    habitacionInterna: { type: Number, required: true }, // 1 a 8
+
+    fechaInicio: { type: Date, required: true },
+    fechaFin: { type: Date, required: true },
+
+    adultos: { type: Number, required: true, min: 1 },
+    ninos: { type: Number, default: 0 },
+
+    total: { type: Number, required: true },
+
+    checkinConfirmado: { type: Boolean, default: false },
+    qrCode: { type: String }, // Base64 del código QR
   },
-  montoPagado: Number,
-  status: { type: String, default: 'confirmada' },
-  stripeId: String,
-  fechaCreacion: { type: Date, default: Date.now }
-});
+  {
+    timestamps: true,
+  }
+);
 
 module.exports = mongoose.model('Reserva', reservaSchema);
