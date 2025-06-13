@@ -1,0 +1,3 @@
+exports.verificarDisponibilidad = async (req, res) => {
+  // lógica aquí...
+};
