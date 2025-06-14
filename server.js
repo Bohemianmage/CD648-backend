@@ -2,12 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const reservasRoutes = require('./routes/reservas');
+
+const reservasRoutes = require('./routes/reservas');        // Rutas públicas
+const reservasAdminRoutes = require('./routes/reservas.admin'); // Rutas protegidas
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middleware global
 app.use(cors());
 app.use(express.json());
 
@@ -17,8 +19,11 @@ mongoose
   .then(() => console.log('✅ MongoDB conectado'))
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
+// Rutas públicas (clientes)
+app.use('/api', reservasRoutes);
+
 // Middleware para proteger rutas administrativas
-app.use('/api/reservas', (req, res, next) => {
+app.use('/api/admin', (req, res, next) => {
   const key = req.headers['x-admin-key'];
   if (key !== process.env.ADMIN_KEY) {
     return res.status(403).json({ error: 'Acceso denegado' });
@@ -26,8 +31,8 @@ app.use('/api/reservas', (req, res, next) => {
   next();
 });
 
-// Rutas
-app.use('/api', reservasRoutes);
+// Rutas administrativas protegidas
+app.use('/api/admin', reservasAdminRoutes);
 
 // Inicio del servidor
 app.listen(PORT, () => {
