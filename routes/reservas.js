@@ -13,7 +13,7 @@ router.post('/reservas', async (req, res) => {
   }
 });
 
-// Obtener reservas por tipo de habitación y fechas
+// Obtener reservas por tipo de habitación y fechas (disponibilidad)
 router.get('/disponibilidad/:tipoId', async (req, res) => {
   const { tipoId } = req.params;
   const { inicio, fin } = req.query;
@@ -34,6 +34,16 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
     res.json(reservas);
   } catch (err) {
     res.status(500).json({ error: 'Error al consultar reservas', details: err });
+  }
+});
+
+// Obtener todas las reservas (para panel administrativo)
+router.get('/reservas', async (req, res) => {
+  try {
+    const reservas = await Reserva.find().sort({ createdAt: -1 });
+    res.json(reservas);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener reservas', details: err });
   }
 });
 
