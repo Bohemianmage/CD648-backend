@@ -9,6 +9,9 @@ const { enviarCorreoReserva } = require('../utils/mailer');
  */
 exports.crearReserva = async (req, res) => {
   try {
+    // ✅ Log de entrada para depuración
+    console.log('📥 Reserva recibida:', req.body);
+
     const {
       tipoHabitacion,
       inicio,
@@ -44,7 +47,7 @@ exports.crearReserva = async (req, res) => {
       return res.status(400).json({ error: 'Tipo de habitación inválido' });
     }
 
-    // Buscar todas las reservas en el rango y tipo seleccionado
+    // Buscar reservas en conflicto dentro del tipo
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [
@@ -52,14 +55,10 @@ exports.crearReserva = async (req, res) => {
       ],
     });
 
-    // Buscar habitación libre
-    const habitacionesOcupadas = new Set(
-      reservas.map((r) => r.habitacion)
-    );
-
+    const habitacionesOcupadas = new Set(reservas.map((r) => r.habitacion));
     const habitacionLibre = habitaciones.find((h) => !habitacionesOcupadas.has(h));
 
-    if (!habitacionLibre) {
+    if (!habitacionLibre || isNaN(habitacionLibre)) {
       return res.status(409).json({ error: 'No hay habitaciones disponibles en ese rango' });
     }
 
@@ -76,7 +75,7 @@ exports.crearReserva = async (req, res) => {
       total,
     });
 
-    // Generar QR y enviar correo si hay datos de contacto
+    // Generar QR y enviar correo si hay contacto
     if (nombre && correo) {
       const qrTexto = `Reserva: ${nombre}, Habitación ${habitacionLibre}, ${inicio} - ${fin}`;
       const qrCode = await generarQRCode(qrTexto);
