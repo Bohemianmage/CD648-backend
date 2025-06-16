@@ -5,12 +5,12 @@ const { enviarCorreoReserva } = require('../utils/mailer');
 /**
  * Crear nueva reserva
  * -------------------
- * Guarda la reserva, verifica disponibilidad y envía confirmación.
+ * Asigna automáticamente una habitación libre dentro del tipo seleccionado.
  */
 exports.crearReserva = async (req, res) => {
   try {
     const {
-      habitacion,
+      tipoHabitacion,
       inicio,
       fin,
       adultos,
@@ -21,13 +21,8 @@ exports.crearReserva = async (req, res) => {
       total,
     } = req.body;
 
-    if (!habitacion || !inicio || !fin || adultos == null || ninos == null) {
+    if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
-    }
-
-    const habitacionNum = parseInt(habitacion, 10);
-    if (isNaN(habitacionNum)) {
-      return res.status(400).json({ error: 'Número de habitación inválido' });
     }
 
     const fechaInicio = new Date(inicio);
@@ -37,21 +32,40 @@ exports.crearReserva = async (req, res) => {
       return res.status(400).json({ error: 'Fechas inválidas' });
     }
 
-    // Verificar si ya existe una reserva en conflicto
-    const existe = await Reserva.findOne({
-      habitacion: habitacionNum,
+    // Matriz de habitaciones por tipo
+    const mapaHabitaciones = {
+      '1': [1, 2, 3],
+      '2': [4, 5, 6],
+      '3': [7, 8],
+    };
+
+    const habitaciones = mapaHabitaciones[String(tipoHabitacion)];
+    if (!habitaciones) {
+      return res.status(400).json({ error: 'Tipo de habitación inválido' });
+    }
+
+    // Buscar todas las reservas en el rango y tipo seleccionado
+    const reservas = await Reserva.find({
+      habitacion: { $in: habitaciones },
       $or: [
         { inicio: { $lt: fechaFin }, fin: { $gt: fechaInicio } },
       ],
     });
 
-    if (existe) {
-      return res.status(409).json({ error: 'Habitación ocupada en ese rango de fechas' });
+    // Buscar habitación libre
+    const habitacionesOcupadas = new Set(
+      reservas.map((r) => r.habitacion)
+    );
+
+    const habitacionLibre = habitaciones.find((h) => !habitacionesOcupadas.has(h));
+
+    if (!habitacionLibre) {
+      return res.status(409).json({ error: 'No hay habitaciones disponibles en ese rango' });
     }
 
-    // Crear nueva reserva
+    // Crear reserva
     const nuevaReserva = new Reserva({
-      habitacion: habitacionNum,
+      habitacion: habitacionLibre,
       inicio: fechaInicio,
       fin: fechaFin,
       adultos,
@@ -62,9 +76,9 @@ exports.crearReserva = async (req, res) => {
       total,
     });
 
-    // Si hay datos de contacto, generar QR y enviar correo
+    // Generar QR y enviar correo si hay datos de contacto
     if (nombre && correo) {
-      const qrTexto = `Reserva: ${nombre}, Habitación ${habitacionNum}, ${inicio} - ${fin}`;
+      const qrTexto = `Reserva: ${nombre}, Habitación ${habitacionLibre}, ${inicio} - ${fin}`;
       const qrCode = await generarQRCode(qrTexto);
       nuevaReserva.qrCode = qrCode;
 

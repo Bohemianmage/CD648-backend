@@ -1,4 +1,5 @@
 const Reserva = require('../models/Reserva');
+const { eachDayOfInterval } = require('date-fns');
 
 exports.verificarDisponibilidad = async (req, res) => {
   const { tipoHabitacion } = req.params;
@@ -16,29 +17,38 @@ exports.verificarDisponibilidad = async (req, res) => {
   };
 
   const habitaciones = mapaHabitaciones[tipoHabitacion];
-
   if (!habitaciones) {
     return res.status(400).json({ error: 'Tipo de habitación inválido' });
   }
 
   try {
-    // Buscar reservas que se crucen con el rango solicitado
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [
-        { inicio: { $lte: fin }, fin: { $gte: inicio } } // cruce de rangos
+        { inicio: { $lte: new Date(fin) }, fin: { $gte: new Date(inicio) } }
       ]
     });
 
-    // Solo devolver rangos válidos
-    const resultado = reservas
-      .filter(r => r.inicio && r.fin)
-      .map(r => ({
-        from: r.inicio.toISOString().split('T')[0],
-        to: r.fin.toISOString().split('T')[0]
-      }));
+    // Contador de fechas ocupadas
+    const conteoFechas = {};
 
-    res.json(resultado);
+    for (const r of reservas) {
+      const start = new Date(r.inicio);
+      const end = new Date(r.fin);
+
+      const dias = eachDayOfInterval({ start, end });
+      for (const dia of dias) {
+        const clave = dia.toISOString().split('T')[0];
+        conteoFechas[clave] = (conteoFechas[clave] || 0) + 1;
+      }
+    }
+
+    // Fechas en que TODAS las habitaciones están ocupadas
+    const fechasBloqueadas = Object.entries(conteoFechas)
+      .filter(([_, conteo]) => conteo >= habitaciones.length)
+      .map(([fecha]) => fecha);
+
+    res.json({ fechasBloqueadas });
   } catch (err) {
     console.error('❌ Error al verificar disponibilidad:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
