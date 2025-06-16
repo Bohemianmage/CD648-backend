@@ -9,8 +9,7 @@ const { enviarCorreoReserva } = require('../utils/mailer');
  */
 exports.crearReserva = async (req, res) => {
   try {
-    // ✅ Log de entrada para depuración
-    console.log('📥 Reserva recibida:', req.body);
+    console.log('📥 Solicitud de reserva recibida:', req.body);
 
     const {
       tipoHabitacion,
@@ -18,9 +17,6 @@ exports.crearReserva = async (req, res) => {
       fin,
       adultos,
       ninos,
-      nombre,
-      correo,
-      telefono,
       total,
     } = req.body;
 
@@ -47,7 +43,7 @@ exports.crearReserva = async (req, res) => {
       return res.status(400).json({ error: 'Tipo de habitación inválido' });
     }
 
-    // Buscar reservas en conflicto dentro del tipo
+    // Buscar reservas que se crucen con las fechas
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [
@@ -56,35 +52,29 @@ exports.crearReserva = async (req, res) => {
     });
 
     const habitacionesOcupadas = new Set(reservas.map((r) => r.habitacion));
+
+    // 🔍 Logs de depuración clave
+    console.log('🏨 Habitaciones del tipo seleccionado:', habitaciones);
+    console.log('🚫 Habitaciones ocupadas:', [...habitacionesOcupadas]);
+
     const habitacionLibre = habitaciones.find((h) => !habitacionesOcupadas.has(h));
+    console.log('✅ Habitación asignada:', habitacionLibre);
 
     if (!habitacionLibre || isNaN(habitacionLibre)) {
       return res.status(409).json({ error: 'No hay habitaciones disponibles en ese rango' });
     }
 
-    // Crear reserva
     const nuevaReserva = new Reserva({
       habitacion: habitacionLibre,
       inicio: fechaInicio,
       fin: fechaFin,
       adultos,
       ninos,
-      nombre,
-      correo,
-      telefono,
       total,
     });
 
-    // Generar QR y enviar correo si hay contacto
-    if (nombre && correo) {
-      const qrTexto = `Reserva: ${nombre}, Habitación ${habitacionLibre}, ${inicio} - ${fin}`;
-      const qrCode = await generarQRCode(qrTexto);
-      nuevaReserva.qrCode = qrCode;
-
-      await enviarCorreoReserva(nuevaReserva);
-    }
-
     await nuevaReserva.save();
+    console.log('💾 Reserva guardada exitosamente:', nuevaReserva);
 
     res.status(201).json({ message: 'Reserva confirmada', reserva: nuevaReserva });
   } catch (error) {

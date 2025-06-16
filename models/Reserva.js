@@ -6,9 +6,6 @@ const reservaSchema = new mongoose.Schema({
   fin: { type: Date, required: true },
   adultos: { type: Number, required: true },
   ninos: { type: Number, required: true },
-  nombre: String,
-  correo: String,
-  telefono: String,
   total: Number,
   qrCode: String,
 }, { timestamps: true });
