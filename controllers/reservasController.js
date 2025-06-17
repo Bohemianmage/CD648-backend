@@ -51,6 +51,21 @@ exports.crearReserva = async (req, res) => {
       ],
     });
 
+console.log('\n📅 Checando conflictos con la reserva solicitada:');
+console.log('→ Rango solicitado:', fechaInicio.toISOString(), '-', fechaFin.toISOString());
+
+reservas.forEach(r => {
+  console.log(`→ Habitación ${r.habitacion}: ${new Date(r.inicio).toISOString()} - ${new Date(r.fin).toISOString()}`);
+
+  const inicioExistente = new Date(r.inicio);
+  const finExistente = new Date(r.fin);
+
+  const hayCruce =
+    fechaInicio < finExistente && fechaFin > inicioExistente;
+
+  console.log(`   ↳ ¿Hay conflicto? ${hayCruce ? '🟥 SÍ' : '🟩 NO'}`);
+});
+
     const habitacionesOcupadas = new Set(reservas.map((r) => r.habitacion));
 
     // 🔍 Logs de depuración clave
