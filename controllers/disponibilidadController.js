@@ -1,5 +1,4 @@
 const Reserva = require('../models/Reserva');
-const { eachDayOfInterval } = require('date-fns');
 
 exports.verificarDisponibilidad = async (req, res) => {
   const { tipoHabitacion } = req.params;
@@ -9,7 +8,6 @@ exports.verificarDisponibilidad = async (req, res) => {
     return res.status(400).json({ error: 'Parámetros de fecha incompletos' });
   }
 
-  // Habitaciones disponibles según tipo
   const mapaHabitaciones = {
     '1': [1, 2, 3],
     '2': [4, 5, 6],
@@ -25,30 +23,18 @@ exports.verificarDisponibilidad = async (req, res) => {
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [
-        { inicio: { $lte: new Date(fin) }, fin: { $gte: new Date(inicio) } }
+        { inicio: { $lt: new Date(fin) }, fin: { $gt: new Date(inicio) } }
       ]
     });
 
-    // Contador de fechas ocupadas
-    const conteoFechas = {};
+    // ⬅️ ¡Aquí devolvemos cada reserva con su habitación, como espera el frontend!
+    const resultado = reservas.map((r) => ({
+      from: r.inicio.toISOString().split('T')[0],
+      to: r.fin.toISOString().split('T')[0],
+      habitacion: r.habitacion,
+    }));
 
-    for (const r of reservas) {
-      const start = new Date(r.inicio);
-      const end = new Date(r.fin);
-
-      const dias = eachDayOfInterval({ start, end });
-      for (const dia of dias) {
-        const clave = dia.toISOString().split('T')[0];
-        conteoFechas[clave] = (conteoFechas[clave] || 0) + 1;
-      }
-    }
-
-    // Fechas en que TODAS las habitaciones están ocupadas
-    const fechasBloqueadas = Object.entries(conteoFechas)
-      .filter(([_, conteo]) => conteo >= habitaciones.length)
-      .map(([fecha]) => fecha);
-
-    res.json({ fechasBloqueadas });
+    res.status(200).json(resultado);
   } catch (err) {
     console.error('❌ Error al verificar disponibilidad:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
