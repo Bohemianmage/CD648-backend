@@ -2,44 +2,89 @@ const express = require('express');
 const router = express.Router();
 const Reserva = require('../models/Reserva');
 
-// Crear una nueva reserva
+/**
+ * POST /api/reservas
+ * ------------------
+ * Crea una nueva reserva automáticamente asignando una habitación física libre según el tipo.
+ */
 router.post('/reservas', async (req, res) => {
-  const { habitacion, inicio, fin, adultos, ninos } = req.body;
-
-  // Validación básica
-  if (!habitacion || !inicio || !fin || adultos == null || ninos == null) {
-    return res.status(400).json({ error: 'Faltan datos obligatorios' });
-  }
-
-  const habitacionNum = parseInt(habitacion, 10);
-  if (isNaN(habitacionNum)) {
-    return res.status(400).json({ error: 'Número de habitación inválido' });
-  }
-
-  const fechaInicio = new Date(inicio);
-  const fechaFin = new Date(fin);
-
-  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
-    return res.status(400).json({ error: 'Fechas inválidas' });
-  }
-
   try {
+    const {
+      tipoHabitacion,
+      inicio,
+      fin,
+      adultos,
+      ninos,
+      total,
+    } = req.body;
+
+    console.log('📥 Solicitud de reserva recibida:', req.body);
+
+    if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null) {
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    const fechaInicio = new Date(inicio);
+    const fechaFin = new Date(fin);
+
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      return res.status(400).json({ error: 'Fechas inválidas' });
+    }
+
+    const mapaHabitaciones = {
+      '1': [1, 2, 3],
+      '2': [4, 5, 6],
+      '3': [7, 8],
+    };
+
+    const habitaciones = mapaHabitaciones[String(tipoHabitacion)];
+    if (!habitaciones) {
+      return res.status(400).json({ error: 'Tipo de habitación inválido' });
+    }
+
+    const reservas = await Reserva.find({
+      habitacion: { $in: habitaciones },
+      $or: [
+        { inicio: { $lt: fechaFin }, fin: { $gt: fechaInicio } },
+      ],
+    });
+
+    console.log(`🔍 Reservas encontradas para tipo ${tipoHabitacion}:`);
+    reservas.forEach(r => {
+      console.log(`- Habitación ${r.habitacion}: ${r.inicio.toISOString()} → ${r.fin.toISOString()}`);
+    });
+
+    const habitacionesOcupadas = new Set(reservas.map(r => r.habitacion));
+    const habitacionLibre = habitaciones.find(h => !habitacionesOcupadas.has(h));
+
+    if (!habitacionLibre) {
+      return res.status(409).json({ error: 'No hay habitaciones disponibles en ese rango' });
+    }
+
     const nuevaReserva = new Reserva({
-      habitacion: habitacionNum,
+      habitacion: habitacionLibre,
       inicio: fechaInicio,
       fin: fechaFin,
       adultos,
       ninos,
+      total,
     });
 
     await nuevaReserva.save();
-    res.status(201).json(nuevaReserva);
+    console.log(`✅ Reserva confirmada en habitación ${habitacionLibre}`);
+    res.status(201).json({ message: 'Reserva confirmada', reserva: nuevaReserva });
+
   } catch (err) {
-    res.status(400).json({ error: 'Error al crear reserva', details: err });
+    console.error('❌ Error al crear reserva:', err);
+    res.status(500).json({ error: 'Error al procesar la reserva' });
   }
 });
 
-// Obtener reservas ocupadas por tipo de habitación y rango de fechas
+/**
+ * GET /api/disponibilidad/:tipoId
+ * -------------------------------
+ * Devuelve fechas ocupadas por tipo de habitación.
+ */
 router.get('/disponibilidad/:tipoId', async (req, res) => {
   const { tipoId } = req.params;
   const { inicio, fin } = req.query;
@@ -48,7 +93,6 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
     return res.status(400).json({ error: 'Fechas requeridas' });
   }
 
-  // Mapear tipos a IDs de habitaciones reales
   const mapaHabitaciones = {
     '1': [1, 2, 3],
     '2': [4, 5, 6],
@@ -64,11 +108,10 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [
-        { inicio: { $lte: fin }, fin: { $gte: inicio } },
+        { inicio: { $lte: new Date(fin) }, fin: { $gte: new Date(inicio) } },
       ],
     });
 
-    // Solo devolver fechas bien formateadas
     const resultado = reservas
       .filter(r => r.inicio && r.fin)
       .map(r => ({
@@ -78,17 +121,23 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
 
     res.json(resultado);
   } catch (err) {
-    res.status(500).json({ error: 'Error al consultar disponibilidad', details: err });
+    console.error('❌ Error al consultar disponibilidad:', err);
+    res.status(500).json({ error: 'Error al consultar disponibilidad' });
   }
 });
 
-// Obtener todas las reservas
+/**
+ * GET /api/reservas
+ * -----------------
+ * Devuelve todas las reservas (uso administrativo).
+ */
 router.get('/reservas', async (req, res) => {
   try {
     const reservas = await Reserva.find().sort({ createdAt: -1 });
     res.json(reservas);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener reservas', details: err });
+    console.error('❌ Error al obtener reservas:', err);
+    res.status(500).json({ error: 'Error al obtener reservas' });
   }
 });
 
