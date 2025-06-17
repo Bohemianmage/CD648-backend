@@ -113,11 +113,12 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
     });
 
     const resultado = reservas
-      .filter(r => r.inicio && r.fin)
-      .map(r => ({
-        from: r.inicio.toISOString().split('T')[0],
-        to: r.fin.toISOString().split('T')[0],
-      }));
+  .filter(r => r.inicio && r.fin)
+  .map(r => ({
+    from: r.inicio.toISOString().split('T')[0],
+    to: r.fin.toISOString().split('T')[0],
+    habitacion: r.habitacion, // ✅ incluir la habitación
+  }));
 
     res.json(resultado);
   } catch (err) {
