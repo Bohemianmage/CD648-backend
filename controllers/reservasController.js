@@ -72,6 +72,8 @@ exports.crearReserva = async (req, res) => {
       qrCode,
       cliente: { nombre, email, telefono },
     });
+    
+    console.log('✅ Reserva a guardar:', nuevaReserva);
 
     await nuevaReserva.save();
     console.log('💾 Reserva guardada:', nuevaReserva);
