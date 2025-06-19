@@ -36,5 +36,5 @@ app.use('/api/admin', reservasAdminRoutes);
 
 // Inicio del servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`✅ CD648 backend iniciado en puerto ${PORT} [Build #2]`);
 });
