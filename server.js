@@ -3,8 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const reservasRoutes = require('./routes/reservas');        // Rutas públicas
-const reservasAdminRoutes = require('./routes/reservas.admin'); // Rutas protegidas
+const reservasRoutes = require('./routes/reservas');             // Rutas públicas
+const reservasAdminRoutes = require('./routes/reservas.admin');  // Rutas protegidas
 
 const app = express();
 const PORT = process.env.PORT;
@@ -12,6 +12,15 @@ const PORT = process.env.PORT;
 // Middleware global
 app.use(cors());
 app.use(express.json());
+
+// Ruta de diagnóstico pública
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'CD648 backend is up and running 🚀',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Conexión a MongoDB
 mongoose
