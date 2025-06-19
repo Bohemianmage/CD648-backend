@@ -7,7 +7,7 @@ const reservasRoutes = require('./routes/reservas');        // Rutas públicas
 const reservasAdminRoutes = require('./routes/reservas.admin'); // Rutas protegidas
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 
 // Middleware global
 app.use(cors());
