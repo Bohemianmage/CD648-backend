@@ -1,5 +1,7 @@
 exports.crearReserva = async (req, res) => {
   try {
+    console.log('📥 Body recibido en backend:');
+    console.log(JSON.stringify(req.body, null, 2));
     console.log('📥 Solicitud de reserva recibida:', req.body);
 
     const {
