@@ -8,6 +8,11 @@ const reservaSchema = new mongoose.Schema({
   ninos: { type: Number, required: true },
   total: Number,
   qrCode: String,
+  cliente: {
+    nombre: { type: String, required: true },
+    email: { type: String, required: true },
+    telefono: { type: String, required: true }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Reserva', reservaSchema);
