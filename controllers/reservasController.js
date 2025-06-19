@@ -5,24 +5,24 @@ exports.crearReserva = async (req, res) => {
     console.log('📥 Solicitud de reserva recibida:', req.body);
 
     const {
-      tipoHabitacion,
-      inicio,
-      fin,
-      adultos,
-      ninos,
-      total,
-      cliente: { ...cliente },
-    } = req.body;
+  tipoHabitacion,
+  inicio,
+  fin,
+  adultos,
+  ninos,
+  total,
+  cliente
+} = req.body;
 
-    // Validación básica
-    if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null || !cliente) {
-      return res.status(400).json({ error: 'Faltan datos obligatorios' });
-    }
+if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null || !cliente) {
+  return res.status(400).json({ error: 'Faltan datos obligatorios' });
+}
 
-    const { nombre, email, telefono } = cliente;
-    if (!nombre || !email || !telefono) {
-      return res.status(400).json({ error: 'Faltan datos del cliente' });
-    }
+if (!cliente.nombre || !cliente.email || !cliente.telefono) {
+  return res.status(400).json({ error: 'Faltan datos del cliente' });
+}
+
+const { nombre, email, telefono } = cliente;
 
     const fechaInicio = new Date(inicio);
     const fechaFin = new Date(fin);
