@@ -1,28 +1,33 @@
 exports.crearReserva = async (req, res) => {
   try {
-    console.log('📥 Body recibido en backend:');
-    console.log(JSON.stringify(req.body, null, 2));
-    console.log('📥 Solicitud de reserva recibida:', req.body);
+    console.log('📥 Body recibido en backend:\n', JSON.stringify(req.body, null, 2));
 
     const {
-  tipoHabitacion,
-  inicio,
-  fin,
-  adultos,
-  ninos,
-  total,
-  cliente
-} = req.body;
+      tipoHabitacion,
+      inicio,
+      fin,
+      adultos,
+      ninos,
+      total,
+      cliente,
+    } = req.body;
 
-if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null || !cliente) {
-  return res.status(400).json({ error: 'Faltan datos obligatorios' });
-}
+    // Validación de campos obligatorios
+    if (
+      !tipoHabitacion ||
+      !inicio ||
+      !fin ||
+      adultos == null ||
+      ninos == null ||
+      !cliente ||
+      !cliente.nombre ||
+      !cliente.email ||
+      !cliente.telefono
+    ) {
+      return res.status(400).json({ error: 'Faltan datos obligatorios del cliente o reserva' });
+    }
 
-if (!cliente.nombre || !cliente.email || !cliente.telefono) {
-  return res.status(400).json({ error: 'Faltan datos del cliente' });
-}
-
-const { nombre, email, telefono } = cliente;
+    const { nombre, email, telefono } = cliente;
 
     const fechaInicio = new Date(inicio);
     const fechaFin = new Date(fin);
@@ -37,18 +42,22 @@ const { nombre, email, telefono } = cliente;
     };
 
     const habitaciones = mapaHabitaciones[String(tipoHabitacion)];
-    if (!habitaciones) return res.status(400).json({ error: 'Tipo de habitación inválido' });
+    if (!habitaciones) {
+      return res.status(400).json({ error: 'Tipo de habitación inválido' });
+    }
 
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
       $or: [{ inicio: { $lt: fechaFin }, fin: { $gt: fechaInicio } }],
     });
 
-    const habitacionesOcupadas = new Set(reservas.map(r => r.habitacion));
-    const habitacionLibre = habitaciones.find(h => !habitacionesOcupadas.has(h));
-    if (!habitacionLibre) return res.status(409).json({ error: 'No hay habitaciones disponibles' });
+    const habitacionesOcupadas = new Set(reservas.map((r) => r.habitacion));
+    const habitacionLibre = habitaciones.find((h) => !habitacionesOcupadas.has(h));
+    if (!habitacionLibre) {
+      return res.status(409).json({ error: 'No hay habitaciones disponibles' });
+    }
 
-    // Generar QR personalizado
+    // Generar QR
     const payloadQR = {
       nombre,
       habitacion: habitacionLibre,
@@ -57,7 +66,7 @@ const { nombre, email, telefono } = cliente;
     };
     const qrCode = await generarQRCode(JSON.stringify(payloadQR));
 
-    // Guardar en base de datos
+    // Crear y guardar la reserva
     const nuevaReserva = new Reserva({
       habitacion: habitacionLibre,
       inicio: fechaInicio,
@@ -66,13 +75,16 @@ const { nombre, email, telefono } = cliente;
       ninos,
       total,
       qrCode,
-      cliente: { nombre, email, telefono },
+      cliente: {
+        nombre,
+        email,
+        telefono,
+      },
     });
-    
-    console.log('✅ Reserva a guardar:', nuevaReserva);
 
+    console.log('✅ Reserva a guardar:', nuevaReserva);
     await nuevaReserva.save();
-    console.log('💾 Reserva guardada:', nuevaReserva);
+    console.log('💾 Reserva guardada en base de datos');
 
     // Enviar correo con QR
     await enviarCorreoReserva(nuevaReserva, qrCode);
