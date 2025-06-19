@@ -11,7 +11,11 @@ exports.crearReserva = async (req, res) => {
       adultos,
       ninos,
       total,
-      cliente, // <- Nuevo bloque
+      cliente: {
+       nombre: String(cliente?.nombre || ''),
+       email: String(cliente?.email || ''),
+       telefono: String(cliente?.telefono || ''),
+      },
     } = req.body;
 
     // Validación básica
