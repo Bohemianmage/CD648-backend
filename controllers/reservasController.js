@@ -66,6 +66,8 @@ exports.crearReserva = async (req, res) => {
     };
     const qrCode = await generarQRCode(JSON.stringify(payloadQR));
 
+    const { nombre, email, telefono } = cliente;
+
     // Crear y guardar la reserva
     const nuevaReserva = new Reserva({
       habitacion: habitacionLibre,
