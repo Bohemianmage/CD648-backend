@@ -1,6 +1,6 @@
 exports.crearReserva = async (req, res) => {
   try {
-    // Log completo del body recibido para debug
+    // Log de entrada
     console.log('📥 Body recibido en backend:');
     console.log(JSON.stringify(req.body, null, 2));
 
@@ -11,30 +11,24 @@ exports.crearReserva = async (req, res) => {
       adultos,
       ninos,
       total,
-      cliente: datosCliente,
+      cliente,
     } = req.body;
 
-    // Validación básica de campos generales
-    if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null || !datosCliente) {
+    if (!tipoHabitacion || !inicio || !fin || adultos == null || ninos == null || !cliente) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
-    // Desestructurar los campos del cliente
-    const { nombre, email, telefono } = datosCliente;
-
-    // Validar que todos los campos del cliente estén presentes
+    const { nombre, email, telefono } = cliente;
     if (!nombre || !email || !telefono) {
       return res.status(400).json({ error: 'Faltan datos del cliente' });
     }
 
-    // Convertir fechas y validar formato
     const fechaInicio = new Date(inicio);
     const fechaFin = new Date(fin);
     if (isNaN(fechaInicio) || isNaN(fechaFin)) {
       return res.status(400).json({ error: 'Fechas inválidas' });
     }
 
-    // Mapeo de tipos de habitación a habitaciones físicas
     const mapaHabitaciones = {
       '1': [1, 2, 3],
       '2': [4, 5, 6],
@@ -42,27 +36,18 @@ exports.crearReserva = async (req, res) => {
     };
 
     const habitaciones = mapaHabitaciones[String(tipoHabitacion)];
-    if (!habitaciones) {
-      return res.status(400).json({ error: 'Tipo de habitación inválido' });
-    }
+    if (!habitaciones) return res.status(400).json({ error: 'Tipo de habitación inválido' });
 
-    // Buscar reservas existentes que se crucen con las fechas solicitadas
     const reservas = await Reserva.find({
       habitacion: { $in: habitaciones },
-      $or: [
-        { inicio: { $lt: fechaFin }, fin: { $gt: fechaInicio } }
-      ]
+      $or: [{ inicio: { $lt: fechaFin }, fin: { $gt: fechaInicio } }],
     });
 
-    // Detectar habitaciones ocupadas
     const habitacionesOcupadas = new Set(reservas.map(r => r.habitacion));
     const habitacionLibre = habitaciones.find(h => !habitacionesOcupadas.has(h));
+    if (!habitacionLibre) return res.status(409).json({ error: 'No hay habitaciones disponibles' });
 
-    if (!habitacionLibre) {
-      return res.status(409).json({ error: 'No hay habitaciones disponibles' });
-    }
-
-    // Generar código QR con los datos clave
+    // Generar QR personalizado
     const payloadQR = {
       nombre,
       habitacion: habitacionLibre,
@@ -71,7 +56,7 @@ exports.crearReserva = async (req, res) => {
     };
     const qrCode = await generarQRCode(JSON.stringify(payloadQR));
 
-    // Crear y guardar la nueva reserva
+    // Crear y guardar la reserva
     const nuevaReserva = new Reserva({
       habitacion: habitacionLibre,
       inicio: fechaInicio,
@@ -80,15 +65,17 @@ exports.crearReserva = async (req, res) => {
       ninos,
       total,
       qrCode,
-      cliente: { nombre, email, telefono }, // ✅ Forma esperada por Mongoose
+      cliente: {
+        nombre,
+        email,
+        telefono,
+      },
     });
 
     console.log('✅ Reserva a guardar:', nuevaReserva);
-
     await nuevaReserva.save();
     console.log('💾 Reserva guardada en base de datos');
 
-    // Enviar correo con el QR
     await enviarCorreoReserva(nuevaReserva, qrCode);
 
     res.status(201).json({ message: 'Reserva confirmada', reserva: nuevaReserva });
