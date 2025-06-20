@@ -3,8 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const reservasRoutes = require('./routes/reservas');             // Rutas públicas
-const reservasAdminRoutes = require('./routes/reservas.admin');  // Rutas protegidas
+const reservasRoutes = require('./routes/reservas');
+const reservasAdminRoutes = require('./routes/reservas.admin');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -12,6 +12,11 @@ const PORT = process.env.PORT;
 // Middleware global
 app.use(cors());
 app.use(express.json());
+
+// Ruta raíz para mantener contenedor activo
+app.get('/', (req, res) => {
+  res.send('CD648 backend está activo 🚀');
+});
 
 // Ruta de diagnóstico pública
 app.get('/api/status', (req, res) => {
@@ -28,10 +33,10 @@ mongoose
   .then(() => console.log('✅ MongoDB conectado'))
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
-// Rutas públicas (clientes)
+// Rutas públicas
 app.use('/api', reservasRoutes);
 
-// Middleware para proteger rutas administrativas
+// Middleware admin
 app.use('/api/admin', (req, res, next) => {
   const key = req.headers['x-admin-key'];
   if (key !== process.env.ADMIN_KEY) {
@@ -40,7 +45,17 @@ app.use('/api/admin', (req, res, next) => {
   next();
 });
 
-// Rutas administrativas protegidas
+// Ruta de diagnóstico protegida
+app.get('/api/admin/status', (req, res) => {
+  res.json({
+    status: 'ok',
+    admin: true,
+    message: 'Access granted to admin endpoint ✅',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Rutas protegidas
 app.use('/api/admin', reservasAdminRoutes);
 
 // Inicio del servidor
