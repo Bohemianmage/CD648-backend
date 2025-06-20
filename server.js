@@ -59,6 +59,6 @@ app.get('/api/admin/status', (req, res) => {
 app.use('/api/admin', reservasAdminRoutes);
 
 // Inicio del servidor
-app.listen(PORT, () => {
-  console.log(`✅ CD648 backend iniciado en puerto ${PORT} [Build #2]`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ CD648 backend iniciado en puerto ${PORT} [Build #3 - listening on 0.0.0.0]`);
 });
