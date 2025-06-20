@@ -16,6 +16,7 @@ router.post('/reservas', async (req, res) => {
       adultos,
       ninos,
       total,
+      cliente
     } = req.body;
 
     console.log('📥 Solicitud de reserva recibida:', req.body);
@@ -68,6 +69,7 @@ router.post('/reservas', async (req, res) => {
       adultos,
       ninos,
       total,
+      cliente
     });
 
     await nuevaReserva.save();
