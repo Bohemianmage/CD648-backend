@@ -12,6 +12,7 @@ const reservaSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     email: { type: String, required: true },
     telefono: { type: String, required: true },
+    idioma: { type: String, default: 'es' }
   },
 }, { timestamps: true });
 

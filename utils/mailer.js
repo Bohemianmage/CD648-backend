@@ -21,23 +21,34 @@ const transporter = nodemailer.createTransport({
  */
 async function enviarCorreoReserva(reserva, qrCode) {
   try {
-    const { cliente, tipoHabitacion, inicio, fin, total } = reserva;
+    const { cliente, habitacion, inicio, fin, total } = reserva;
 
-    // Idioma y fecha
-    const idioma = cliente.idioma === 'en' ? 'en' : 'es';
+    // Idioma del cliente
+    const idioma = cliente?.idioma === 'en' ? 'en' : 'es';
+
+    // Fechas en formato local
     const fechaInicio = new Date(inicio).toLocaleDateString(idioma === 'es' ? 'es-MX' : 'en-US');
     const fechaFin = new Date(fin).toLocaleDateString(idioma === 'es' ? 'es-MX' : 'en-US');
 
-    // Mapeo tipo de habitación
+    // Inferir tipo de habitación desde número físico
+    const mapaHabitaciones = {
+      1: '1', 2: '1', 3: '1',
+      4: '2', 5: '2', 6: '2',
+      7: '3', 8: '3',
+    };
+
+    const tipoHabitacion = mapaHabitaciones[habitacion];
+
+    // Nombres según idioma
     const tiposHabitacion = {
       1: { es: 'Ejecutiva', en: 'Executive' },
       2: { es: 'Suite con Terraza', en: 'Suite with Terrace' },
       3: { es: 'Estancia Compacta', en: 'Compact Stay' },
     };
 
-    const nombreHabitacion = tiposHabitacion[tipoHabitacion]?.[idioma] || `Tipo ${tipoHabitacion}`;
+    const nombreHabitacion = tiposHabitacion[tipoHabitacion]?.[idioma] || `Habitación ${habitacion}`;
 
-    // Plantilla HTML según idioma
+    // Plantilla HTML del correo
     const html = idioma === 'es' ? `
       <div style="font-family: sans-serif; color: #333;">
         <h2>Gracias por tu reserva, ${cliente.nombre}!</h2>
@@ -70,7 +81,7 @@ async function enviarCorreoReserva(reserva, qrCode) {
       </div>
     `;
 
-    // Configuración del mensaje
+    // Configurar y enviar correo
     const mailOptions = {
       from: `"CD648" <${process.env.SMTP_USER}>`,
       to: cliente.email,
