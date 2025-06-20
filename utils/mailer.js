@@ -41,9 +41,9 @@ async function enviarCorreoReserva(reserva, qrCode) {
 
     // Nombres según idioma
     const tiposHabitacion = {
-      1: { es: 'Ejecutiva', en: 'Executive' },
-      2: { es: 'Suite con Terraza', en: 'Suite with Terrace' },
-      3: { es: 'Estancia Compacta', en: 'Compact Stay' },
+      1: { es: 'Suite Junior', en: 'Junior Suite' },
+      2: { es: 'Suite Master', en: 'Master Suite' },
+      3: { es: 'Suite con Balcón', en: 'Suite with Balcony' },
     };
 
     const nombreHabitacion = tiposHabitacion[tipoHabitacion]?.[idioma] || `Habitación ${habitacion}`;

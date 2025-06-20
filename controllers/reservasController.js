@@ -18,6 +18,8 @@ exports.crearReserva = async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
+    const idioma = reserva.cliente.idioma || 'es';
+
     const { nombre, email, telefono } = cliente;
     if (!nombre || !email || !telefono) {
       return res.status(400).json({ error: 'Faltan datos del cliente' });
