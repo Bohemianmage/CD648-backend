@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Reserva = require('../models/Reserva');
 
+const { enviarCorreoReserva } = require('../utils/mailer');
+const { generarQRReserva } = require('../utils/qr'); // si aún no tienes esto, podemos hacer una versión mock
+
 /**
  * POST /api/reservas
  * ------------------
@@ -74,7 +77,19 @@ router.post('/reservas', async (req, res) => {
 
     await nuevaReserva.save();
     console.log(`✅ Reserva confirmada en habitación ${habitacionLibre}`);
-    res.status(201).json({ message: 'Reserva confirmada', reserva: nuevaReserva });
+
+    // 📤 Enviar correo con QR
+    console.log(`📨 Enviando correo de confirmación a ${cliente.email}`);
+
+    // 🧪 Generar QR real (reemplaza con lógica real si aún no está)
+    const qrCode = await generarQRReserva(nuevaReserva); // <-- si no tienes aún esta función, puedes usar un string de prueba
+
+    await enviarCorreoReserva(nuevaReserva, qrCode);
+
+    return res.status(201).json({
+      message: 'Reserva confirmada y correo enviado',
+      reserva: nuevaReserva,
+    });
 
   } catch (err) {
     console.error('❌ Error al crear reserva:', err);
@@ -115,12 +130,12 @@ router.get('/disponibilidad/:tipoId', async (req, res) => {
     });
 
     const resultado = reservas
-  .filter(r => r.inicio && r.fin)
-  .map(r => ({
-    from: r.inicio.toISOString().split('T')[0],
-    to: r.fin.toISOString().split('T')[0],
-    habitacion: r.habitacion, // ✅ incluir la habitación
-  }));
+      .filter(r => r.inicio && r.fin)
+      .map(r => ({
+        from: r.inicio.toISOString().split('T')[0],
+        to: r.fin.toISOString().split('T')[0],
+        habitacion: r.habitacion,
+      }));
 
     res.json(resultado);
   } catch (err) {
